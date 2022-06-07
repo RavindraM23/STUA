@@ -1,7 +1,6 @@
 import requests, csv, datetime, math, os, json, calendar
 import time as te
 from abc import ABC, abstractmethod
-#import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import fromstring, ElementTree as ET
 import gtfs_realtime_pb2, nyct_subway_pb2
 
