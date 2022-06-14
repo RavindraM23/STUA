@@ -1,7 +1,5 @@
-from sqlite3 import Timestamp
 import aiohttp, asyncio
-import multiprocessing
-from multiprocessing import freeze_support, Process
+import ray
 import requests, csv, datetime, math, os, json, calendar
 import time as te
 from abc import ABC, abstractmethod
@@ -487,7 +485,6 @@ async def _requestFeedBustime(sites):
 
 def _url():
     link = []
-    a = _getAPIMTA()
     link.append('https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-si')
     link.append('https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace')
     link.append('https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-bdfm')
@@ -503,6 +500,7 @@ def _transitSubway(stop, direction, responses, API):
     destination = []
     current_time = datetime.datetime.now()
     links = asyncio.get_event_loop().run_until_complete(_requestFeedMTA(_url(), API))
+
     for link in links:
         feed = gtfs_realtime_pb2.FeedMessage()
         feed.ParseFromString(link)
@@ -510,9 +508,8 @@ def _transitSubway(stop, direction, responses, API):
         with open(f"logs/NYCT_GTFS/{(datetime.datetime.now()).strftime('%d%m%Y')}.txt","w") as test:
             test.write(str(feed)+ f" {datetime.datetime.now()}\n")
         '''
-        times=[]
-        destination = []
         for entity in feed.entity:
+            #print(entity)
             for update in entity.trip_update.stop_time_update:
                 if (update.stop_id == stop+direction):
                     station_id = update.stop_id[:-1]
@@ -533,13 +530,11 @@ def _transitSubway(stop, direction, responses, API):
                     terminus_id = destination[-1]
                 
                     #print(stop)
-
                     times.append([time, route_id, terminus_id, station_id, direction, trip_id])
-        
 
+    #print(times)
     times.sort()
     #times = []
-    #print(times)
     try:
         times = times[responses-1]
     except:
@@ -549,40 +544,6 @@ def _transitSubway(stop, direction, responses, API):
     with open(f"logs/Print/{(datetime.datetime.now()).strftime('%d%m%Y')}.txt","a") as test:
         test.write(str(times)+ f" {datetime.datetime.now()}\n")
     '''
-    return times
-
-def helper(morestuff):
-    entity = morestuff[3]
-    stop = morestuff[0]
-    direction=morestuff[1]
-    current_time=morestuff[2]
-    times=[]
-    destination = []
-    for update in entity.trip_update.stop_time_update:
-        if (update.stop_id == stop+direction):
-            station_id = update.stop_id[:-1]
-            direction = update.stop_id[-1]
-            time = update.arrival.time
-            if (time < 0):
-                time = update.departure.time
-            time = datetime.datetime.fromtimestamp(time)
-            time = math.trunc(((time - current_time).total_seconds()) / 60)
-            #print(time)
-            if (time < 0):
-                continue 
-            trip_id = entity.trip_update.trip.trip_id
-            route_id = entity.trip_update.trip.route_id
-            for update in entity.trip_update.stop_time_update:
-                destination.append(update.stop_id)
-            #print(service_description)
-            terminus_id = destination[-1]
-        
-            #print(stop)
-
-            times.append([time, route_id, terminus_id, station_id, direction, trip_id])
-            #print(data["gtfs"]["stops"])
-            #for i in data["gtfs"]["stops"]:
-            #print(i["stop_id"] + " " + i["stop_name"])
     return times
     
 
